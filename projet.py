@@ -33,7 +33,7 @@ soup = BeautifulSoup(response.content, 'html.parser')
 # Trouver les liens vers les articles via beautifulsoup
 articles = soup.find_all('a', class_='highwire-cite-linked-title')#find liens hypertextes avec classe CSS
 
-'''	Parcourir les articles et enregistrer leurs titres et liens''
+'''	Parcourir les articles et enregistrer leurs titres et liens'''
 
 # Parcourir tous les articles et enregistrer leurs titres et liens
 for article in articles:
@@ -52,7 +52,7 @@ conn.commit()
 
 
 
-''' Affichage de mes articles  dans la base de données'''
+'''Affichage de mes articles  dans la base de données'''
 # affiche articles stockés dans database
 c.execute("SELECT * FROM articles")
 
