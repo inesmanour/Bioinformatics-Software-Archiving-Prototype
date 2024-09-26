@@ -34,7 +34,10 @@ Ce projet vise à garantir la conservation à long terme des logiciels scientifi
 - **Développement logiciel avec Git et GitHub** : Suivi des versions et collaboration sur le projet à l'aide de git et GitHub.
 
 ## **Auteur**
-**[MANOUR Inès]**, étudiant en Master 1 Bioinformatique à l'Université Paris Cité.
+**MANOUR Inès**, étudiant en Master 1 Bioinformatique à l'Université Paris Cité.
 
 ## **Encadrant**
-Ce projet est tutoré par **M. Pierre Poulain**, enseignant-chercheur en bioinformatique.
+Ce projet est tutoré par **M. Pierre Poulain**, enseignant-chercheur en bioinformatique au :   Laboratoire de Biochimie Théorique  
+                                                                                                Institut de Biologie Physico-Chimique  
+                                                                                                13 rue Pierre et Marie Curie  
+                                                                                                75005 Paris, France
