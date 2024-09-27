@@ -9,7 +9,7 @@ Ce projet vise à garantir la conservation à long terme des logiciels scientifi
 
 1. **Scraper bioRxiv pour identifier les articles liés à la bioinformatique :**
    - Utilisation de **BeautifulSoup** et **requests** pour extraire les articles liés à la collection "bioinformatics" sur bioRxiv.
-   - Filtrage des articles pertinents en fonction de mots-clés spécifiques à la bioinformatique, tels que "bioinformatics", "genomics", "proteomics", "sequencing", etc.
+   
 
 2. **Extraire les URLs des dépôts logiciels dans les abstracts ou les fichiers PDF :**
    - Analyser les abstracts des articles à la recherche de liens vers des dépôts logiciels (GitHub, GitLab, etc.).
