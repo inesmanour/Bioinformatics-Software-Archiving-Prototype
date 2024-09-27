@@ -61,8 +61,13 @@ for page in range(1, total_pages + 1):
         date = date_tag['content'] if date_tag else 'Date non disponible'
 
         # extraire le lien vers le fichier PDF
-        pdf_tag = article_soup.find('a', string='Download PDF')
-        pdf_link = url + pdf_tag['href'] if pdf_tag else 'Lien PDF non disponible'
+        # Trouver tous les liens et filtrer ceux qui contiennent 'PDF'
+        pdf_links = article_soup.find_all('a')
+        pdf_link = 'Lien PDF non disponible'
+        for pdf in pdf_links:
+            if pdf and 'PDF' in pdf.text:
+                pdf_link = url + pdf['href']  # Construire le lien complet
+                break  # Quitter la boucle une fois le lien trouvé
 
         # tout inserer dans la base de données SQLite
         c.execute(
