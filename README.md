@@ -1,6 +1,7 @@
 # **Projet : Prototype d'archivage automatique des logiciels bioinformatiques publiés dans bioRxiv**
 
 ## **Description**
+
 Ce projet tutoré est réalisé dans le cadre de mon Master 1 en Bioinformatique à l'Université Paris Cité, sous la supervision de M. Pierre Poulain. Il a pour objectif d'automatiser l'archivage des logiciels bioinformatiques publiés dans les articles bioRxiv, en identifiant les articles pertinents, en extrayant les URLs des dépôts logiciels (comme GitHub ou GitLab), en vérifiant si ces logiciels sont déjà archivés dans **Software Heritage**, et en procédant à leur archivage si nécessaire.
 
 Ce projet vise à garantir la conservation à long terme des logiciels scientifiques en bioinformatique, en utilisant l'API de Software Heritage pour assurer que ces dépôts restent accessibles même si les plateformes de développement d'origine deviennent indisponibles.
@@ -9,33 +10,49 @@ Ce projet vise à garantir la conservation à long terme des logiciels scientifi
 
 **Le projet est structuré en trois scripts principaux qui couvrent l’ensemble des étapes de collecte, traitement et archivage des dépôts logiciels bioinformatiques.**
 
-1. **Script 1 : Extraction des Articles Pertinents**
+**Script 1 : Extraction des Articles Pertinents**
    
-   i. **Scraper bioRxiv pour identifier les articles liés à la bioinformatique :**
+1. **Scraper bioRxiv pour identifier les articles liés à la bioinformatique :**
+   
    •	Utilisation de BeautifulSoup et requests pour extraire les articles liés à la collection “bioinformatics” sur bioRxiv.
+   
    •	Stockage des informations des articles (titre, lien, DOI, abstract) dans une base de données SQLite pour un suivi ultérieur.
 
    
-2. **Script 2 : Extraction et Validation des URLs de Dépôts**
+**Script 2 : Extraction et Validation des URLs de Dépôts**
 
-	i.	Extraire les URLs des dépôts logiciels des abstracts ou des fichiers PDF.
+1. **Extraire les URLs des dépôts logiciels des abstracts ou des fichiers PDF.**
+
 	•	Recherche des URLs dans les abstracts des articles pour identifier les dépôts logiciels (par exemple, GitHub, GitLab).
+
 	•	Si l’URL n’est pas présente dans l’abstract, un module d’analyse est appliqué au fichier PDF pour détecter les liens.
-	ii.	Vérifier la validité des URLs.
+
+2. **Vérifier la validité des URLs.**
+
 	•	S’assurer que chaque URL extraite est valide et correspond bien à un dépôt logiciel actif.
-	iii.	Marquer l’état de vérification des articles.
+
+3. **Marquer l’état de vérification des articles.**
+
 	•	Mise à jour de la base de données avec une colonne is_article_processed pour indiquer les articles dont les URLs ont été vérifiées, ce qui permet d’éviter de traiter plusieurs fois le même article.
 
 
 
-3. **Script 3 : Archivage et Suivi des Dépôts dans Software Heritage**
-   i.	Vérification de l’archivage dans Software Heritage.
+**Script 3 : Archivage et Suivi des Dépôts dans Software Heritage**
+   
+1. **Vérification de l’archivage dans Software Heritage.**
+   
 	•	Utilisation de l’API de Software Heritage pour vérifier si le dépôt logiciel est déjà archivé.
+
 	•	Récupération de la date et du lien de l’archive si le dépôt est archivé, pour mise à jour dans les colonnes date_last_archive et url_archive de la base de données.
-	ii.	Archivage des dépôts non archivés.
+
+2. **Archivage des dépôts non archivés.**
+
 	•	Pour les dépôts non archivés, une demande d’archivage est soumise via l’API.
-	iii.	Optimisation du quota d’API.
+
+3. **Optimisation du quota d’API.**
+
 	•	Limitation des requêtes pour éviter les erreurs dues au quota d’API (ex. erreur 429). Si l’archive est déjà vérifiée ou le dépôt déjà archivé, aucune requête supplémentaire n’est envoyée.
+
 	•	Utilisation de pauses entre les requêtes pour éviter le dépassement du quota.
 
 ## **Guide pour Lancer les Scripts**
