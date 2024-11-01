@@ -16,7 +16,7 @@ Ce projet vise à garantir la conservation à long terme des logiciels scientifi
    •	Stockage des informations des articles (titre, lien, DOI, abstract) dans une base de données SQLite pour un suivi ultérieur.
 
    
-2. **Script 2 : Extraction et Validation des URLs de Dépôts
+2. **Script 2 : Extraction et Validation des URLs de Dépôts**
 
 	i.	Extraire les URLs des dépôts logiciels des abstracts ou des fichiers PDF.
 	•	Recherche des URLs dans les abstracts des articles pour identifier les dépôts logiciels (par exemple, GitHub, GitLab).
