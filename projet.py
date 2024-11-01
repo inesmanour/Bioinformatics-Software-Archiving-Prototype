@@ -421,143 +421,170 @@ finally:
 #Utiliser l’API de Software Heritage pour vérifier si le dépôt logiciel est déjà archivé dans leur base de données. Si le dépôt n’est pas encore archivé, soumettre automatiquement une demande d’archivage via l’API.
 
 
-# Configuration du logging
+# Configuration du logging pour afficher les informations de journalisation
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Connexion à la base de données SQLite
+# Fonction pour créer une nouvelle base de données avec les colonnes nécessaires
+def create_new_database(db_name="new_bioinformatics_articles.db"):
+    # Connexion à la base de données SQLite
+    conn = sqlite3.connect(db_name)
+    c = conn.cursor()
+    
+    try:
+        # Création de la table 'articles' si elle n'existe pas déjà, avec les colonnes requises
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS articles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT,
+                link TEXT,
+                doi TEXT,
+                date TEXT,
+                pdf_link TEXT,
+                abstract TEXT,
+                software_links TEXT,
+                is_article_processed INTEGER DEFAULT 0,
+                date_last_archive TEXT DEFAULT '',
+                url_archive TEXT DEFAULT ''
+            )
+        ''')
+        logging.info(f"Nouvelle base de données '{db_name}' créée avec succès avec la table 'articles'.")
+    except sqlite3.OperationalError as e:
+        # Gestion des erreurs potentielles lors de la création de la table
+        logging.error(f"Erreur lors de la création de la base de données : {e}")
+    finally:
+        # Validation des modifications et fermeture de la connexion
+        conn.commit()
+        conn.close()
+
+# Appel de la fonction pour créer la nouvelle base de données
+create_new_database()
+
+# Connexion à la base de données existante 'bioinformatics_articles.db'
 database = sqlite3.connect('bioinformatics_articles.db')
 c = database.cursor()
 
-# Ajouter la colonne 'archived' si elle n'existe pas déjà
+# Ajouter les colonnes 'date_last_archive' et 'url_archive' si elles n'existent pas déjà
 try:
-    c.execute("ALTER TABLE articles ADD COLUMN archived BOOLEAN DEFAULT FALSE;")
-    print("Colonne 'archived' ajoutée avec succès.")
+    c.execute("ALTER TABLE articles ADD COLUMN date_last_archive TEXT DEFAULT '';")
+    c.execute("ALTER TABLE articles ADD COLUMN url_archive TEXT DEFAULT '';")
+    logging.info("Colonnes 'date_last_archive' et 'url_archive' ajoutées avec succès.")
 except sqlite3.OperationalError as e:
-    print(f"La colonne 'archived' existe peut-être déjà : {e}")
+    # Gestion des erreurs si les colonnes existent déjà
+    logging.warning(f"Les colonnes existent peut-être déjà : {e}")
 
+# Token d'API Software Heritage pour les requêtes d'archivage
+TOKEN = "votre_token_ici"
 
-# Token d'API Software Heritage
-TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJhMTMxYTQ1My1hM2IyLTQwMTUtODQ2Ny05MzAyZjk3MTFkOGEifQ.eyJpYXQiOjE3Mjk4NTA4NjUsImp0aSI6IjMyNGZhYzBkLWFjZmEtNDE3MS04ZmI1LTY2MzA2Y2FiYWVhZSIsImlzcyI6Imh0dHBzOi8vYXV0aC5zb2Z0d2FyZWhlcml0YWdlLm9yZy9hdXRoL3JlYWxtcy9Tb2Z0d2FyZUhlcml0YWdlIiwiYXVkIjoiaHR0cHM6Ly9hdXRoLnNvZnR3YXJlaGVyaXRhZ2Uub3JnL2F1dGgvcmVhbG1zL1NvZnR3YXJlSGVyaXRhZ2UiLCJzdWIiOiI0NTFmMTkzNy04ZTY4LTQxNjItYTk2Ny1lMjJkZjcwNDc5MmUiLCJ0eXAiOiJPZmZsaW5lIiwiYXpwIjoic3doLXdlYiIsInNlc3Npb25fc3RhdGUiOiJiYmQ4ZmExYS0yMDZkLTQzYzctYmQ3MS00MjMxMDE4MWYyNzMiLCJzY29wZSI6Im9wZW5pZCBvZmZsaW5lX2FjY2VzcyBwcm9maWxlIGVtYWlsIn0.cIPaxXVt65WiPz2FVb2y2ylQsyDJLUNQOSWIbe0hncE"
-
-
-# Fonction pour vérifier si un dépôt est déjà archivé
+# Fonction pour vérifier si un dépôt est déjà archivé dans Software Heritage
 def check_archived(depot_url):
+    # URL de base pour vérifier l'archivage dans Software Heritage
     base_url = "https://archive.softwareheritage.org/api/1/origin/"
-    encoded_url = urllib.parse.quote(depot_url, safe='')  # Encodage URL pour eviter caractères spéciaux
+    encoded_url = urllib.parse.quote(depot_url, safe='')
     check_url = f"{base_url}{encoded_url}/get/"
-    
-    logging.info(f"Vérification de l'URL : {check_url}")
 
+    logging.info(f"Vérification de l'URL : {check_url}")
     try:
+        # Requête pour vérifier si le dépôt est archivé
         response = requests.get(check_url)
         response.raise_for_status()
-        
-        if response.status_code == 200:
-            logging.info(f"Le dépôt {depot_url} est déjà archivé.")
-            # Extraire le lien de l'archive et la date de la dernière archive
-            archive_info = response.json()
-            archive_link = archive_info.get('archive_link', 'Lien non disponible')
-            last_archive_date = archive_info.get('last_archive_date', 'Date non disponible')
-            logging.info(f"Lien de l'archive : {archive_link}, Date de la dernière archive : {last_archive_date}")
-            return True, archive_link, last_archive_date
-        
-        elif response.status_code == 404:
-            logging.info(f"Le dépôt {depot_url} n'est pas encore archivé.")
-            return False, None, None
+        archive_info = response.json()
+
+        # Si l'URL des visites est présente, on peut vérifier la date d'archivage
+        if 'origin_visits_url' in archive_info:
+            origin_visits_url = archive_info['origin_visits_url']
+            visit_response = requests.get(origin_visits_url)
+            visit_response.raise_for_status()
+            visit_info = visit_response.json()
+
+            # Extraction de la dernière date d'archivage
+            if visit_info and 'date' in visit_info[0]:
+                last_visit = visit_info[0]
+                last_archive_date = last_visit['date']
+                archive_link = f"https://archive.softwareheritage.org/browse/origin/{encoded_url}/"
+                logging.info(f"Lien de l'archive : {archive_link}, Date de la dernière archive : {last_archive_date}")
+                return True, archive_link, last_archive_date
+            else:
+                logging.warning("Aucune date d'archivage trouvée.")
+                return True, 'Lien non disponible', 'Date non disponible'
+
+        else:
+            logging.warning("Les informations d'archive ne contiennent pas de clé 'origin_visits_url'.")
+            return True, 'Lien non disponible', 'Date non disponible'
+
     except requests.RequestException as e:
+        # Gestion des erreurs de requête
         logging.error(f"Erreur lors de la vérification de {depot_url} : {e}")
         return None, None, None
 
-
-# Fonction pour archiver le dépôt
-def archive_repo(depot_url,c):
-    # Type du dépôt, ici "git"
+# Fonction pour archiver un dépôt sur Software Heritage
+def archive_repo(depot_url):
+    # Définition du type de visite et encodage de l'URL
     visit_type = "git"
-    
-    # Construire l'URL pour l'archivage
-    encoded_url = urllib.parse.quote(depot_url, safe='')  # Encodage URL
+    encoded_url = urllib.parse.quote(depot_url, safe='')
     save_url = f"https://archive.softwareheritage.org/api/1/origin/save/{visit_type}/url/{encoded_url}/"
-    
-    logging.info(f"Tentative d'archivage pour : {save_url}")
-    
+
     headers = {
-        'Authorization': f'Bearer {TOKEN}' 
+        'Authorization': f'Bearer {TOKEN}'
     }
 
     try:
+        # Requête pour soumettre l'archivage
         response = requests.post(save_url, headers=headers)
-        
-        # Gérer les erreurs de manière spécifique
         if response.status_code == 200:
             logging.info(f"Le dépôt {depot_url} a été soumis pour archivage avec succès.")
-            # Mettre à jour la base de données pour marquer le dépôt comme archivé
-            c.execute("UPDATE articles SET archived = TRUE WHERE software_links LIKE ?", ('%' + depot_url + '%',))
-            database.commit()  # Commit des changements
-        elif response.status_code == 301:
-            logging.warning(f"Erreur 301 : Redirection détectée pour {depot_url}. Vérifiez l'URL.")
-        elif response.status_code == 403:
-            logging.warning("Erreur 403 (Forbidden) : Le token est peut-être invalide ou a expiré.")
-        elif response.status_code == 404:
-            logging.warning(f"Erreur 404 : L'URL de {depot_url} n'existe pas.")
+            return True
         elif response.status_code == 429:
-            logging.warning("Erreur 429 (Trop de requêtes). Pause de 60 secondes.")
-            time.sleep(60)
-            archive_repo(depot_url)  # Relancer après une pause
+            # Gestion de la limite de requêtes avec une pause de 3 secondes en cas de surcharge
+            logging.warning("Erreur 429 : Trop de requêtes. Pause de 3 secondes.")
+            time.sleep(3)
+            return archive_repo(depot_url)
         else:
-            logging.warning(f"Erreur lors de la soumission de {depot_url} : {response.status_code} - {response.text}")
+            logging.warning(f"Erreur lors de la soumission de {depot_url} : {response.status_code}")
+            return False
     except requests.RequestException as e:
+        # Gestion des erreurs de requête
         logging.error(f"Erreur lors de la soumission de {depot_url} : {e}")
-        time.sleep(5)
-        archive_repo(depot_url)  # Réessayer après un délai en cas d'erreur temporaire
+        return False
 
-
-
-# Limites de requêtes
+# Limites de requêtes par heure pour éviter la surcharge du serveur
 MAX_REQUESTS_PER_HOUR = 1200
 TIME_BETWEEN_REQUESTS = 3600 / MAX_REQUESTS_PER_HOUR
 
-# Lire les URL des dépôts dans la base de données
+# Lecture des URLs des dépôts et gestion de l'archivage
 def process_repositories():
-    c.execute("SELECT software_links FROM articles WHERE software_links IS NOT NULL")
-    software_links = c.fetchall()
+    # Sélection des articles dont les informations d'archive sont vides
+    c.execute("SELECT software_links FROM articles WHERE software_links IS NOT NULL AND date_last_archive = '' AND url_archive = ''")
+    rows = c.fetchall()
 
-    for link_tuple in software_links:
-        depot_urls = link_tuple[0].split(',')
-
+    for row in rows:
+        depot_urls = row[0].split(',')
+        
         for depot_url in depot_urls:
             depot_url = depot_url.strip()
 
-            if depot_url and isinstance(depot_url, str) and depot_url.startswith("http"):
-                
+            if depot_url and depot_url.startswith("http"):
                 # Vérifier si le dépôt est déjà archivé
-                c.execute("SELECT archived FROM articles WHERE software_links LIKE ?", ('%' + depot_url + '%',))
-                archived = c.fetchone()
-                
-                if archived and archived[0]:  # Si déjà archivé, passer au suivant
-                    logging.info(f"Le dépôt {depot_url} est déjà archivé, saut de l'archivage.")
-                    continue  # Passer à l'URL suivante
-                
-                # Vérifier si le dépôt est déjà archivé et récupérer les informations d'archive
                 is_archived, archive_link, last_archive_date = check_archived(depot_url)
-                
-                if not is_archived:
-                    archive_repo(depot_url)
-                    # Une fois archivé, mettre à jour la base de données
-                    c.execute("UPDATE articles SET archived = TRUE WHERE software_links LIKE ?", ('%' + depot_url + '%',))
-                    database.commit()  # Commit les changements
-                    time.sleep(TIME_BETWEEN_REQUESTS)  # Pause entre les requêtes
-                else:
-                    # Si le dépôt est déjà archivé, tu peux décider de faire quelque chose avec ces informations
+
+                if is_archived:
+                    # Mise à jour des informations d'archivage si le dépôt est déjà archivé
+                    c.execute("UPDATE articles SET date_last_archive = ?, url_archive = ? WHERE software_links LIKE ?",
+                              (last_archive_date, archive_link, f'%{depot_url}%'))
+                    database.commit()
                     logging.info(f"Dépôt déjà archivé : {archive_link} à la date {last_archive_date}")
-                    # Peut-être stocker ces informations dans la base de données si nécessaire
-                
+                else:
+                    # Soumettre le dépôt pour archivage s'il n'est pas déjà archivé
+                    if archive_repo(depot_url):
+                        logging.info(f"Dépôt {depot_url} soumis pour archivage.") 
+                    database.commit()    
+                    time.sleep(TIME_BETWEEN_REQUESTS)
             else:
+                # Gestion des URL invalides
                 logging.warning(f"URL invalide trouvée : {depot_url}")
 
-
-            
-# Exécuter la fonction principale
+# Exécuter la fonction pour traiter les dépôts
 process_repositories()
 
-# Fermer la connexion à la base de données
+# Validation finale des modifications et fermeture de la connexion à la base de données
+database.commit()
 database.close()
