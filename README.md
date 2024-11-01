@@ -64,7 +64,7 @@ Avant d’exécuter les scripts, suivez les étapes ci-dessous pour configurer l
 Installez les bibliothèques nécessaires avec la commande suivante : 
 
 ```bash
-pip install requests beautifulsoup4
+pip install requests beautifulsoup4 sqlite3 logging time
 ```
 
 **2. Récupération du Token API Software Heritage**
