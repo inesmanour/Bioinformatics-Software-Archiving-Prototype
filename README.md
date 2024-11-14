@@ -8,7 +8,7 @@ Ce projet vise à garantir la conservation à long terme des logiciels scientifi
 
 ## **Étapes du projet**
 
-**Le projet est structuré en trois scripts principaux qui couvrent l’ensemble des étapes de collecte, traitement et archivage des dépôts logiciels bioinformatiques.**
+**Le projet est structuré en quatre scripts principaux qui couvrent l’ensemble des étapes de collecte, traitement et archivage des dépôts logiciels bioinformatiques.**
 
 **Script 1 : Extraction des Articles Pertinents**
    
@@ -49,11 +49,19 @@ Ce projet vise à garantir la conservation à long terme des logiciels scientifi
 
 	•	Pour les dépôts non archivés, une demande d’archivage est soumise via l’API.
 
-3. **Optimisation du quota d’API.**
+4. **Optimisation du quota d’API.**
 
 	•	Limitation des requêtes pour éviter les erreurs dues au quota d’API (ex. erreur 429). Si l’archive est déjà vérifiée ou le dépôt déjà archivé, aucune requête supplémentaire n’est envoyée.
 
 	•	Utilisation de pauses entre les requêtes pour éviter le dépassement du quota.
+
+**Script 4 : Re-vérification de l’Archivage des Dépôts**
+
+1. **Re-vérification des dépôts soumis pour archivage:**
+   
+	•	Ce script re-vérifie l’état des dépôts en attente (is_archived_in_swh = 2) pour confirmer leur archivage effectif dans Software Heritage.
+
+	•	Les dépôts confirmés archivés sont mis à jour avec le lien et la date d’archivage.
 
 ## **Guide pour Lancer les Scripts**
 
