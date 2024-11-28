@@ -6,6 +6,8 @@ Ce projet tutoré est réalisé dans le cadre de mon Master 1 en Bioinformatique
 
 Ce projet vise à garantir la conservation à long terme des logiciels scientifiques en bioinformatique, en utilisant l'API de Software Heritage pour assurer que ces dépôts restent accessibles même si les plateformes de développement d'origine deviennent indisponibles.
 
+Pour une meilleure organisation, j’ai développé un module tools.py qui regroupe toutes les fonctions auxiliaires du projet (création de la base de données, vérification et soumission des dépôts à Software Heritage, gestion des requêtes, etc.).
+
 ## **Étapes du projet**
 
 **Le projet est structuré en quatre scripts principaux qui couvrent l’ensemble des étapes de collecte, traitement et archivage des dépôts logiciels bioinformatiques.**
@@ -72,7 +74,7 @@ Avant d’exécuter les scripts, suivez les étapes ci-dessous pour configurer l
 Installez les bibliothèques nécessaires avec la commande suivante : 
 
 ```bash
-pip install requests beautifulsoup4 sqlite3 logging time
+pip install requests beautifulsoup4 PyPDF2 pdfplumber
 ```
 
 **2. Récupération du Token API Software Heritage**
