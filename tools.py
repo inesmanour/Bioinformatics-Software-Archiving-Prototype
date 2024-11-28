@@ -218,8 +218,20 @@ def extract_links_from_pdf(pdf_url: str) -> set:
 
 def extract_repository_links(db_name="bioinformatics_article.db"):
     """
-    Extrait les URLs des dépôts logiciels des abstracts et des fichiers PDF 
-    des articles présents dans la base de données.
+    Extrait les URLs des dépôts logiciels (GitHub ou GitLab) d'un texte donné.
+
+    La regex utilisée détecte toutes les chaînes qui commencent par http ou https
+    suivies d'un domaine et d'un chemin. Exemple de regex :
+        (https?://[^\s]+)
+    - https? : Capture http ou https.
+    - :// : Obligatoire après http ou https.
+    - [^\s]+ : Capture tous les caractères jusqu'à un espace.
+
+    Args:
+        text (str): Texte à analyser pour les URLs.
+
+    Returns:
+        set: Un ensemble de liens valides vers GitHub ou GitLab.
     """
     conn, c = create_db(db_name)
     c.execute("SELECT id, title, abstract, pdf_link FROM articles WHERE is_article_processed = 0")
@@ -322,10 +334,19 @@ def link_article_to_repo(conn, article_id: int, code_repo_id: int):
 # Fonction pour archiver les dépôts
 def archive_repositories(db_name="bioinformatics_article.db"):
     """
-    Fonction principale
-    Vérifie si les dépôts sont archivés dans Software Heritage.
-    Si un dépôt n'est pas archivé, il est soumis à l'archivage,
-    Appelle process_repo pour chaque dépôt.
+    Fonction principale pour gérer l'archivage des dépôts logiciels.
+
+    Étapes :
+    1. Recherche dans la base de données les dépôts non encore archivés.
+    2. Vérifie si le dépôt est déjà archivé dans Software Heritage (via l'API).
+    3. Si non archivé, soumet le dépôt pour archivage.
+    4. Effectue ces opérations en parallèle grâce à ThreadPoolExecutor.
+
+    Args:
+        db_name (str): Nom de la base de données SQLite à utiliser.
+
+    Returns:
+        None
     """
     conn, c = create_db(db_name)
     c.execute("SELECT code_repo_id, code_repo_url FROM code_repositories WHERE is_archived_in_swh = 0")
