@@ -389,8 +389,14 @@ def process_repo(db_name, repo):
 
             # Si l'URL retourne une 404, arrêtez les tentatives
             if is_archived is None and attempt == 0:
-                logging.warning(f"URL {code_repo_url} ignorée après la première erreur.")
-                break
+            
+                logging.warning(f"Dépôt non trouvé dans Software Heritage. Tentative d'archivage pour : {code_repo_url}")
+                archived = archive_repo(code_repo_url, token="your_api_token_here")
+                if archived:
+                    logging.info(f"Dépôt soumis avec succès pour archivage : {code_repo_url}")
+                    c.execute("UPDATE code_repositories SET is_archived_in_swh = 2 WHERE code_repo_id = ?", (code_repo_id,))
+                else:
+                    logging.error(f"Échec de la soumission pour le dépôt {code_repo_url}")
 
             if is_archived:
                 logging.info(f"Dépôt déjà archivé. Mise à jour des informations pour le dépôt {code_repo_url}")
@@ -424,28 +430,37 @@ def check_archived(repo_url: str) -> Tuple[Optional[bool], Optional[str], Option
     base_url = "https://archive.softwareheritage.org/api/1/origin/"
     encoded_url = urllib.parse.quote(repo_url, safe='')
     check_url = f"{base_url}{encoded_url}/get/"
+    
     try:
-        response = requests.get(check_url)
-        response.raise_for_status()
+        response = requests.get(check_url, timeout=10)
+        response.raise_for_status()  # Lève une erreur si le statut HTTP est >= 400
         archive_info = response.json()
+        
+        # Vérifie si des informations d'archive sont disponibles
         if 'origin_visits_url' in archive_info:
-            visit_response = requests.get(archive_info['origin_visits_url'])
+            visit_response = requests.get(archive_info['origin_visits_url'], timeout=10)
             visit_response.raise_for_status()
             visit_info = visit_response.json()
+            
+            # Récupère la dernière visite (archivage)
             if visit_info:
                 last_visit = visit_info[0]
                 last_archive_date = last_visit.get('date')
                 archive_link = f"https://archive.softwareheritage.org/browse/origin/{encoded_url}/"
                 return True, last_archive_date, archive_link
+        
+        # Dépôt archivé mais sans informations de visites
         return True, None, None
+    
     except requests.HTTPError as e:
         if e.response.status_code == 404:
             logging.error(f"L'URL {repo_url} n'est pas trouvée dans l'API Software Heritage.")
         else:
-            logging.error(f"Erreur HTTP pour {repo_url}: {e}")
+            logging.error(f"Erreur HTTP pour {repo_url}: {e.response.status_code}, Message: {e.response.text}")
         return None, None, None
+    
     except requests.RequestException as e:
-        logging.error(f"Erreur lors de la vérification de {repo_url}: {e}")
+        logging.error(f"Erreur de requête pour {repo_url}: {e}")
         return None, None, None
 
 def archive_repo(repo_url: str, token: str) -> bool:
@@ -459,22 +474,24 @@ def archive_repo(repo_url: str, token: str) -> bool:
     retries = 0
     while retries < MAX_RETRIES:
         try:
-            response = requests.post(save_url, headers=headers)
+            response = requests.post(save_url, headers=headers, timeout=10)
             if response.status_code == 200:
                 logging.info(f"Le dépôt {repo_url} a été soumis pour archivage avec succès.")
                 return True
-            elif response.status_code == 429:
+            elif response.status_code == 429:  # Trop de requêtes
                 wait_time = WAIT_INTERVAL * (retries + 1)
-                logging.warning(f"Trop de requêtes. Pause de {wait_time} secondes.")
+                logging.warning(f"Trop de requêtes. Pause de {wait_time} secondes avant de réessayer.")
                 time.sleep(wait_time)
                 retries += 1
             else:
-                logging.error(f"Erreur lors de la soumission de {repo_url}: {response.status_code}")
+                logging.error(f"Erreur lors de la soumission {repo_url}: Code HTTP {response.status_code}, Message: {response.text}")
                 return False
         except requests.RequestException as e:
             logging.error(f"Erreur lors de la soumission de {repo_url}: {e}")
             retries += 1
             time.sleep(WAIT_INTERVAL)
+    
+    logging.error(f"Échec complet de la soumission pour le dépôt {repo_url} après {MAX_RETRIES} tentatives.")
     return False
 
 def recheck_archived_repositories(db_name="bioinformatics_article.db"):
