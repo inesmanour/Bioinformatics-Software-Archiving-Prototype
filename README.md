@@ -79,16 +79,55 @@ pip install requests beautifulsoup4 PyPDF2 pdfplumber
 
 **2. Récupération du Token API Software Heritage**
 
-Créez un compte sur Software Heritage pour générer un token API sur le site de Software Heritage (https://archive.softwareheritage.org/). Le token est requis pour soumettre les dépôts à l’archivage. Placez ce token dans la variable TOKEN du script 3.
+Créez un compte sur Software Heritage pour générer un token API sur le site de Software Heritage (https://archive.softwareheritage.org/). Le token est requis pour soumettre les dépôts à l’archivage. 
+
+Placez ce token dans la variable TOKEN du script 3.
+
+```bash
+TOKEN = "votre_token_api"
+```
 
 **3. Exécution des Scripts**
 
-Pour exécuter le script projet.py, utilisez la commande suivante :
+Le projet est structuré autour d’un fichier tools.py qui contient toutes les fonctions nécessaires et d’un fichier Jupyter Notebook projet_final.ipynb, où les étapes du projet sont organisées et exécutées de manière interactive.
+
+Étapes pour exécuter le projet :
+
+1.	**Configuration initiale :**
+	
+	•	Assurez-vous que le fichier tools.py et le fichier projet_final.ipynb sont placés dans le même répertoire.
+
+
+2.	**Lancer Jupyter Notebook :**
+   
+	•	Ouvrez un terminal et exécutez la commande suivante :
   
 ```bash
-python projet.py
+jupyter notebook
 ```
-Cela lancera le script et exécutera l’ensemble des fonctions, depuis la collecte des informations jusqu’à la vérification et l’archivage des liens dans Software Heritage.
+
+•	Dans l’interface qui s’ouvre, localisez et ouvrez le fichier projet_final.ipynb.
+
+3.	**Exécution des étapes dans le Notebook :**
+
+Le fichier projet_final.ipynb est organisé en cellules, chacune correspondant à une étape spécifique du projet :
+
+•	Étape 1 : Extraction des articles depuis bioRxiv – Appel des fonctions pour scraper les articles et stocker les métadonnées dans une base SQLite.
+ 
+ •	Étape 2 : Extraction et validation des URLs des dépôts logiciels – Appel des fonctions pour analyser les abstracts et les PDF pour détecter les dépôts logiciels.
+
+•	Étape 3 : Archivage des dépôts logiciels avec Software Heritage – Vérification et archivage des dépôts via l’API de Software Heritage.
+
+•	Étape 4 : Re-vérification de l’état des dépôts soumis – Vérification périodique des dépôts soumis pour archivage.
+
+
+Exécutez chaque cellule dans l’ordre pour accomplir toutes les étapes du projet.
+	
+ 4.	**Personnalisation et gestion des erreurs :**
+
+•	Le Notebook permet de personnaliser les paramètres tels que le nombre de pages à scraper, les délais entre les requêtes, ou encore les tokens API.
+
+•	Les journaux d’exécution (logging) affichent en temps réel les informations sur chaque étape, facilitant le suivi et le débogage.
 
 ## **Compétences développées**
 - **Scraping Web** :  Extraction automatisée de données depuis bioRxiv en utilisant BeautifulSoup et requests pour parcourir les pages web et récupérer des informations d’articles scientifiques pertinents en bioinformatique.
